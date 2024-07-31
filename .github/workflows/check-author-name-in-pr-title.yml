@@ -1,0 +1,33 @@
+name: Check PR Title for Author Name
+
+on:
+  pull_request:
+    types: [opened, edited, synchronize]
+
+jobs:
+  verify-title:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - name: Fetch PR details
+        id: pr
+        uses: octokit/request-action@v2
+        with:
+          route: GET /repos/${{ github.repository }}/pulls/${{ github.event.pull_request.number }}
+
+      - name: Validate PR title
+        run: |
+          pr_title="${{ steps.pr.outputs.data.title }}"
+          pr_author="${{ steps.pr.outputs.data.user.login }}"
+          echo "PR Title: $pr_title"
+          echo "PR Author: $pr_author"
+
+          if [[ "$pr_title" == *"$pr_author"* ]]; then
+            echo "Title includes author name."
+          else
+            echo "Error: Title does not include author name."
+            exit 1
+          fi
