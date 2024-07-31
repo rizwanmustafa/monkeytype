@@ -6,6 +6,7 @@ on:
       - opened
       - edited
       - synchronize
+      - reopened
 
 permissions:
   pull-requests: write
@@ -15,7 +16,16 @@ jobs:
     name: check
     runs-on: ubuntu-latest
     steps:
-      - uses: amannn/action-semantic-pull-request@v5
+      - name: Fetch PR details
+        id: pr
+        uses: octokit/request-action@v2.3.1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          route: GET /repos/${{ github.repository }}/pulls/${{ github.event.pull_request.number }}
+
+      - name: Lint and verify PR title
+        uses: amannn/action-semantic-pull-request@v5
         id: lint_pr_title
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -34,6 +44,12 @@ jobs:
             style
             test
           requireScope: false
+          subjectPattern: .*\(${{ steps.pr.outputs.data.user.login }}\)
+          subjectPatternError: |
+            The subject "{subject}" found in the pull request title "{title}"
+            didn't match the configured pattern. Please ensure that the subject
+            contains your name so that you can be credited in our CHANGELOG. Thanks
+
 
       - uses: marocchino/sticky-pull-request-comment@v2
         # When the previous steps fails, the workflow would stop. By adding this
